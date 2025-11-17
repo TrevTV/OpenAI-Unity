@@ -83,10 +83,28 @@ namespace OpenAI
     #endregion
 
     #region Chat API Data Types
-    public sealed class CreateChatCompletionRequest
+
+    public class CreateChatCompletionRequest
     {
         public string Model { get; set; }
         public List<ChatMessage> Messages { get; set; }
+        public float? Temperature { get; set; } = 1;
+        public int N { get; set; } = 1;
+        public bool Stream { get; set; } = false;
+        public string Stop { get; set; }
+        public int? MaxTokens { get; set; }
+        public float? PresencePenalty { get; set; } = 0;
+        public float? FrequencyPenalty { get; set; } = 0;
+        public Dictionary<string, string> LogitBias { get; set; }
+        public string User { get; set; }
+        public string SystemFingerprint { get; set; }
+        public ResponseFormat ResponseFormat { get; set; }
+    }
+
+    public class CreateChatCompletionRequest<T>
+    {
+        public string Model { get; set; }
+        public List<ChatMessage<T>> Messages { get; set; }
         public float? Temperature { get; set; } = 1;
         public int N { get; set; } = 1;
         public bool Stream { get; set; } = false;
@@ -117,20 +135,79 @@ namespace OpenAI
         public Usage Usage { get; set; }
         public string SystemFingerprint { get; set; }
     }
-    
-    public struct ChatChoice
+
+    public struct CreateChatCompletionResponse<T> : IResponse
     {
-        public ChatMessage Message { get; set; }
-        public ChatMessage Delta { get; set; }
+        public ApiError Error { get; set; }
+        public string Warning { get; set; }
+        public string Model { get; set; }
+        public string Id { get; set; }
+        public string Object { get; set; }
+        public long Created { get; set; }
+        public List<ChatChoice<T>> Choices { get; set; }
+        public Usage Usage { get; set; }
+        public string SystemFingerprint { get; set; }
+    }
+    
+    public class ChatChoice : ChatChoice<string> {}
+
+    public class ChatChoice<T>
+    {
+        public ChatMessage<T> Message { get; set; }
+        public ChatMessage<T> Delta { get; set; }
         public int? Index { get; set; }
         public string FinishReason { get; set; }
         public string Logprobs { get; set; }
     }
 
-    public struct ChatMessage
+    public class ChatMessage : ChatMessage<string> { }
+
+    public class ChatMessage<T>
     {
         public string Role { get; set; }
-        public string Content { get; set; }
+        public T Content { get; set; }
+    }
+
+    public class BaseMessageContent
+    {
+        public virtual string Type { get; }
+    }
+
+    public class TextMessageContent : BaseMessageContent
+    {
+        public TextMessageContent(string text)
+        {
+            Text = text;
+        }
+        public override string Type => "text";
+        public string Text;
+    }
+
+    public class ImageMesageData : BaseMessageContent
+    {
+        public ImageMesageData(byte[] data)
+        {
+            ImageUrl = new(System.Convert.ToBase64String(data));
+        }
+
+        public ImageMesageData(string filePath)
+        {
+            ImageUrl = new(System.Convert.ToBase64String(System.IO.File.ReadAllBytes(filePath)));
+        }
+
+        public override string Type => "image_url";
+
+        public ImageHolder ImageUrl;
+
+        public class ImageHolder
+        {
+            public ImageHolder(string fileData)
+            {
+                Url = $"data:image/jpeg;base64,{fileData}";
+            }
+
+            public string Url { get; set; }
+        }
     }
     
     #endregion
